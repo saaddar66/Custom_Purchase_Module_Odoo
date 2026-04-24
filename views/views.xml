@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Purchase Order Form Inheritance -->
+    <record id="view_purchase_order_form_inherit" model="ir.ui.view">
+        <field name="name">purchase.order.form.inherit</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            
+            <xpath expr="//header" position="inside">
+                <button name="action_submit_for_approval" string="Submit for Approval" 
+                        type="object" invisible="state != 'draft'" class="oe_highlight"/>
+                <button name="action_approve" string="Approve" 
+                        type="object" invisible="state != 'pending'" class="btn-success"
+                        groups="custom_purchase_module.group_purchase_approver"/>
+                <button name="action_reject" string="Reject" 
+                        type="object" invisible="state != 'pending'" class="btn-danger"
+                        groups="custom_purchase_module.group_purchase_approver"/>
+            </xpath>
+
+            <!-- Update statusbar to show our new states -->
+            <xpath expr="//field[@name='state']" position="attributes">
+                <attribute name="statusbar_visible">draft,sent,pending,approved,purchase,done</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="requested_by"/>
+                <field name="department_id"/>
+                <field name="priority" widget="priority"/>
+            </xpath>
+
+            <!-- Add discount field to Order Lines -->
+            <xpath expr="//field[@name='order_line']//field[@name='price_unit']" position="after">
+                <field name="discount" groups="purchase.group_purchase_user"/>
+            </xpath>
+
+            <!-- Move rejection_reason to a dedicated Notebook Page -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Approval Information" name="approval_info" invisible="not rejection_reason">
+                    <group>
+                        <field name="rejection_reason" readonly="state != 'pending'"/>
+                    </group>
+                </page>
+            </xpath>
+            
+        </field>
+    </record>
+
+    <!-- Purchase Order Tree Inheritance for Status-based Decoration -->
+    <record id="view_purchase_order_tree_inherit" model="ir.ui.view">
+        <field name="name">purchase.order.tree.inherit</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="attributes">
+                <attribute name="decoration-danger">state == 'rejected'</attribute>
+                <attribute name="decoration-info">state == 'pending'</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

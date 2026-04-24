@@ -1,0 +1,15 @@
+<odoo>
+    <data>
+
+        <record id="category_custom_purchase" model="ir.module.category">
+            <field name="name">Custom Purchase Access</field>
+        </record>
+
+        <record id="group_purchase_approver" model="res.groups">
+            <field name="name">Purchase Approver</field>
+            <field name="category_id" ref="category_custom_purchase"/>
+            <field name="implied_ids" eval="[(4, ref('purchase.group_purchase_manager'))]"/>
+        </record>
+
+    </data>
+</odoo>
