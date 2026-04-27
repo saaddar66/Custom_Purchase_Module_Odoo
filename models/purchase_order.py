@@ -1,5 +1,6 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
+from dateutil.relativedelta import relativedelta
 
 class PurchaseOrder(models.Model):
     _inherit = 'purchase.order'
@@ -23,25 +24,59 @@ class PurchaseOrder(models.Model):
 
     rejection_reason = fields.Text(string="Rejection Reason")
 
+    @api.onchange('partner_id')
+    def _onchange_partner_id_vendor_check(self):
+        """
+        Learning Exercise: Business Logic on Vendor selection.
+        - Triggers a warning for low-rated vendors.
+        - Applies defaults or logs for preferred vendors.
+        """
+        if not self.partner_id:
+            return
+
+        # 1. Warning for Low Rating
+        if self.partner_id.vendor_rating == '1':
+            return {
+                'warning': {
+                    'title': _("Low Vendor Rating"),
+                    'message': _("Warning: This vendor has a low rating. Please proceed with caution."),
+                }
+            }
+
+        # 2. Logic for Preferred Vendors
+        if self.partner_id.is_preferred_vendor:
+            # We can set a default note or just log for the exercise
+            self.notes = _("Note: This is one of our Preferred Vendors.")
+            # Simple console log as requested
+            print(f"DEBUG: Preferred Vendor {self.partner_id.name} selected.")
+
     @api.model
     def _get_default_expense_account(self):
         """Safely retrieve the configured expense account as a recordset."""
-        account_id = self.env['ir.config_parameter'].sudo().get_param('custom_purchase.default_expense_account_id')
+        account_id = self.env['ir.config_parameter'].sudo().get_param('custom_purchase.expense_account_id')
         if account_id:
             return self.env['account.account'].browse(int(account_id))
         return self.env['account.account']
 
     def action_submit_for_approval(self):
-        """Logic to check limit and change state"""
-        # We fetch the limit from configuration (Settings)
-        limit_str = self.env['ir.config_parameter'].sudo().get_param('custom_purchase.approval_limit', '0.0')
+        """
+        Logic to check limit and change state.
+        Learning Point: Using ir.config_parameter.
+        - 'ir.config_parameter' is a global key-value store for Odoo settings.
+        - We use .sudo() because regular users might not have access to read 
+          system parameters, but the system logic needs to verify the limit.
+        """
+        # Fetch the limit from System Parameters (defined in res.config.settings)
+        # The key must match the 'config_parameter' defined in the model field.
+        limit_str = self.env['ir.config_parameter'].sudo().get_param('custom_purchase.approval_limit', default='0.0')
         limit = float(limit_str) if limit_str else 0.0
         
         for order in self:
             if order.amount_total > limit:
+                # If the order exceeds the limit, move to 'Pending'
                 order.state = 'pending'
             else:
-                # If below limit, bypass and use Odoo's standard confirm
+                # If below limit, bypass approval and confirm directly
                 order.button_confirm()
 
     def action_approve(self):
@@ -60,6 +95,32 @@ class PurchaseOrder(models.Model):
             if not order.rejection_reason:
                 raise UserError(_("Please provide a rejection reason."))
             order.state = 'rejected'
+
+    @api.model
+    def _cron_reminder_pending_approval(self):
+        """
+        Find orders in 'Pending Approval' for more than 3 days 
+        and send a reminder message to the Approvers group.
+        """
+        three_days_ago = fields.Datetime.now() - relativedelta(days=3)
+        pending_orders = self.search([
+            ('state', '=', 'pending'),
+            ('create_date', '<=', three_days_ago)
+        ])
+        
+        if pending_orders:
+            # Retrieve the Approver group
+            approver_group = self.env.ref('custom_purchase_module.group_purchase_approver')
+            approvers = approver_group.users
+            
+            for order in pending_orders:
+                # Post a message on the chatter to notify approvers
+                order.message_post(
+                    body=_("Reminder: This Purchase Order #%s has been pending for over 3 days. Please review.") % order.name,
+                    partner_ids=approvers.partner_id.ids
+                )
+                # Simple console log for visibility during tests
+                print(f"DEBUG: Sent reminder for {order.name} to {len(approvers)} approvers.")
 
 
 class PurchaseOrderLine(models.Model):

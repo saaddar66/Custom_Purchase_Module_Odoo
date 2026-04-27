@@ -5,11 +5,14 @@
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
+            <!-- Adding fields to the Purchase section of the Sales & Purchases tab -->
             <xpath expr="//page[@name='sales_purchases']//group[@name='purchase']" position="inside">
-                <group string="Purchase Properties" name="purchase_properties">
+                <group string="Vendor Management" name="vendor_management" 
+                       invisible="not is_company and parent_id">
                     <field name="vendor_rating" widget="priority"/>
                     <field name="is_preferred_vendor"/>
-                    <field name="payment_term_override"/>
+                    <field name="payment_terms_override" 
+                           placeholder="Override standard terms..."/>
                 </group>
             </xpath>
         </field>

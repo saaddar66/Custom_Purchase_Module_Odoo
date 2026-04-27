@@ -16,7 +16,7 @@ Long description of module's purpose
     # for the full list
     'category': 'Uncategorized',
     'version': '0.1',
-    'depends': ['base', 'purchase', 'hr'],
+    'depends': ['base', 'purchase', 'hr', 'stock'],
     'license': 'LGPL-3',
     'installable': True,
     'application': True,
@@ -25,6 +25,7 @@ Long description of module's purpose
     'data': [
         'security/security_groups.xml',
         'security/ir.model.access.csv',
+        'data/ir_cron_data.xml',
         'views/views.xml',
         'views/templates.xml',
         'views/res_config_settings_views.xml',
