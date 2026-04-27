@@ -58,4 +58,36 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Purchase Order Search Inheritance -->
+    <record id="view_purchase_order_filter_inherit" model="ir.ui.view">
+        <field name="name">purchase.order.search.inherit</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.view_purchase_order_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                
+                <!-- Additional Field Search -->
+                <field name="partner_id" string="Vendor"/>
+
+                <!-- Extra Filtering for Status -->
+                <separator/>
+                <filter string="Pending Approval" name="filter_state_pending" domain="[('state', '=', 'pending')]"/>
+                <filter string="Approved" name="filter_state_approved" domain="[('state', '=', 'approved')]"/>
+                <filter string="Rejected" name="filter_state_rejected" domain="[('state', '=', 'rejected')]"/>
+                
+                <!-- Date Filters using Context Evaluation -->
+                <separator/>
+                <filter string="Order Date: Today" name="filter_date_today" 
+                        domain="[('date_order', '&gt;=', context_today().strftime('%Y-%m-%d 00:00:00')), ('date_order', '&lt;=', context_today().strftime('%Y-%m-%d 23:59:59'))]"/>
+                <filter string="Order Date: This Month" name="filter_date_this_month" 
+                        domain="[('date_order', '&gt;=', (context_today() + relativedelta(day=1)).strftime('%Y-%m-%d 00:00:00')), ('date_order', '&lt;', (context_today() + relativedelta(months=1, day=1)).strftime('%Y-%m-%d 00:00:00'))]"/>
+                
+                <!-- Expanded Group By -->
+                <filter string="Vendor" name="group_by_vendor" domain="[]" context="{'group_by': 'partner_id'}"/>
+                <filter string="Approval Status" name="group_by_state" domain="[]" context="{'group_by': 'state'}"/>
+                <filter string="Order Date" name="group_by_date_order" domain="[]" context="{'group_by': 'date_order'}"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>

@@ -23,10 +23,19 @@ class PurchaseOrder(models.Model):
 
     rejection_reason = fields.Text(string="Rejection Reason")
 
+    @api.model
+    def _get_default_expense_account(self):
+        """Safely retrieve the configured expense account as a recordset."""
+        account_id = self.env['ir.config_parameter'].sudo().get_param('custom_purchase.default_expense_account_id')
+        if account_id:
+            return self.env['account.account'].browse(int(account_id))
+        return self.env['account.account']
+
     def action_submit_for_approval(self):
         """Logic to check limit and change state"""
         # We fetch the limit from configuration (Settings)
-        limit = float(self.env['ir.config_parameter'].sudo().get_param('custom_purchase.approval_limit', 0.0))
+        limit_str = self.env['ir.config_parameter'].sudo().get_param('custom_purchase.approval_limit', '0.0')
+        limit = float(limit_str) if limit_str else 0.0
         
         for order in self:
             if order.amount_total > limit:

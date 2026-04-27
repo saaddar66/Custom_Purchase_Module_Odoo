@@ -7,9 +7,15 @@
         <field name="inherit_id" ref="purchase.res_config_settings_view_form_purchase"/>
         <field name="arch" type="xml">
             <xpath expr="//app[@name='purchase']" position="inside">
-                <block title="Purchase Approval" id="purchase_approval_setting_container">
+                <block title="Purchase Automation &amp; Logic" id="purchase_automation_setting_container">
                     <setting string="Approval Limit" help="Orders above this amount will require approval">
                         <field name="approval_limit"/>
+                    </setting>
+                    <setting string="Default Expense Account" help="Default account to use for expenses on purchase orders.">
+                        <field name="default_expense_account_id"/>
+                    </setting>
+                    <setting string="Auto RFQ" help="Automatically generate RFQs based on stock logic.">
+                        <field name="auto_rfq"/>
                     </setting>
                 </block>
             </xpath>

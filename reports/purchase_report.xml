@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Report Action -->
+    <record id="action_report_purchase_summary" model="ir.actions.report">
+        <field name="name">Purchase Summary</field>
+        <field name="model">purchase.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">custom_purchase_module.report_purchase_summary</field>
+        <field name="report_file">custom_purchase_module.report_purchase_summary</field>
+        <field name="print_report_name">'Purchase Summary - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="purchase.model_purchase_order"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- Report Template -->
+    <template id="report_purchase_summary">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <t t-set="o" t-value="o.with_context(lang=o.partner_id.lang)"/>
+
+                    <div class="page">
+                        <div class="oe_structure"/>
+                        
+                        <h2 class="mt-4 mb-4">
+                            <span>Purchase Summary # </span>
+                            <span t-field="o.name"/>
+                        </h2>
+
+                        <!-- Conditional Styling for Rejected Orders -->
+                        <div t-if="o.state == 'rejected'" class="alert alert-danger" role="alert">
+                            <strong>Warning!</strong> This Purchase Order was rejected.
+                        </div>
+
+                        <div class="row mt-4 mb-4" id="information">
+                            <div class="col-auto mw-100 mb-2">
+                                <strong>Vendor:</strong>
+                                <p class="m-0" t-field="o.partner_id"/>
+                            </div>
+                            <div class="col-auto mw-100 mb-2">
+                                <strong>Requested By:</strong>
+                                <p class="m-0" t-field="o.requested_by"/>
+                            </div>
+                            <div class="col-auto mw-100 mb-2" t-if="o.department_id">
+                                <strong>Department:</strong>
+                                <p class="m-0" t-field="o.department_id"/>
+                            </div>
+                            <div class="col-auto mw-100 mb-2">
+                                <strong>Approval Status:</strong>
+                                <p class="m-0">
+                                    <span t-if="o.state == 'draft'">Draft</span>
+                                    <span t-if="o.state == 'pending'" class="text-info">Pending Approval</span>
+                                    <span t-if="o.state == 'approved'" class="text-success">Approved</span>
+                                    <span t-if="o.state == 'rejected'" class="text-danger">Rejected</span>
+                                    <span t-if="o.state == 'purchase'">Purchase Order</span>
+                                    <span t-if="o.state == 'done'">Locked</span>
+                                    <span t-if="o.state == 'cancel'">Cancelled</span>
+                                </p>
+                            </div>
+                            <div class="col-auto mw-100 mb-2">
+                                <strong>Order Date:</strong>
+                                <p class="m-0" t-field="o.date_order" t-options='{"widget": "date"}'/>
+                            </div>
+                        </div>
+
+                        <!-- Product Lines -->
+                        <table class="table table-sm o_main_table table-borderless mt-4">
+                            <thead style="display: table-row-group; border-bottom: 2px solid black;">
+                                <tr>
+                                    <th name="th_description" class="text-start"><strong>Description</strong></th>
+                                    <th name="th_quantity" class="text-end"><strong>Quantity</strong></th>
+                                    <th name="th_price_unit" class="text-end"><strong>Unit Price</strong></th>
+                                    <th name="th_discount" class="text-end" groups="purchase.group_purchase_user"><strong>Discount (%)</strong></th>
+                                    <th name="th_amount" class="text-end"><strong>Total Amount</strong></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="o.order_line" t-as="line">
+                                    <tr t-att-class="'bg-light' if line_index % 2 == 0 else ''">
+                                        <td id="product">
+                                            <span t-field="line.name"/>
+                                        </td>
+                                        <td class="text-end">
+                                            <span t-field="line.product_qty"/>
+                                            <span t-field="line.product_uom.name" groups="uom.group_uom"/>
+                                        </td>
+                                        <td class="text-end">
+                                            <span t-field="line.price_unit" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                        </td>
+                                        <td class="text-end" groups="purchase.group_purchase_user">
+                                            <span t-field="line.discount"/>
+                                        </td>
+                                        <td class="text-end">
+                                            <span t-field="line.price_subtotal" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+
+                        <!-- Order Totals -->
+                        <div id="total" class="row justify-content-end mt-4">
+                            <div class="col-4">
+                                <table class="table table-sm table-borderless border-black" style="border-top: 2px solid black;">
+                                    <tr>
+                                        <td><strong>Untaxed Amount</strong></td>
+                                        <td class="text-end">
+                                            <span t-field="o.amount_untaxed" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Taxes</strong></td>
+                                        <td class="text-end">
+                                            <span t-field="o.amount_tax" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-top border-black fs-5">
+                                        <td><strong>Total</strong></td>
+                                        <td class="text-end">
+                                            <strong t-field="o.amount_total" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="oe_structure"/>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>
