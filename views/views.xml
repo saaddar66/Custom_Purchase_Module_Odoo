@@ -29,9 +29,14 @@
                 <field name="priority" widget="priority"/>
             </xpath>
 
-            <!-- Add discount field to Order Lines -->
+            <!-- Add discount and tax override fields to Order Lines -->
             <xpath expr="//field[@name='order_line']//field[@name='price_unit']" position="after">
                 <field name="discount" groups="purchase.group_purchase_user"/>
+                <field name="x_tax_override" groups="purchase.group_purchase_user"/>
+                <field name="x_custom_tax_ids" widget="many2many_tags" 
+                       invisible="not x_tax_override"
+                       groups="purchase.group_purchase_user"/>
+                <field name="x_account_id" optional="hide" groups="account.group_account_manager"/>
             </xpath>
 
             <!-- Move rejection_reason to a dedicated Notebook Page -->

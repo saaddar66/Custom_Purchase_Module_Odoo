@@ -1,0 +1,8 @@
+http://localhost:8069/odoo/purchase/new at:
+The operation cannot be completed:
+- Create/update: a mandatory field is not set.
+- Delete: another model requires the record being deleted. If possible, archive it instead.
+
+Model: Purchase Order (purchase.order)
+Field: Unknown (unknown)
+

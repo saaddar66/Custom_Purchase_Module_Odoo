@@ -127,16 +127,22 @@ class PurchaseOrderLine(models.Model):
     _inherit = 'purchase.order.line'
 
     discount = fields.Float(string="Discount (%)", digits='Discount', default=0.0)
+    x_tax_override = fields.Boolean(string="Override Taxes", default=False)
+    x_custom_tax_ids = fields.Many2many('account.tax', string="Custom Taxes")
+    x_account_id = fields.Many2one('account.account', string="Expense Account")
 
-    @api.depends('product_qty', 'price_unit', 'taxes_id', 'discount')
+    @api.depends('product_qty', 'price_unit', 'taxes_id', 'discount', 'x_tax_override', 'x_custom_tax_ids')
     def _compute_amount(self):
         for line in self:
+            # Logic for Tax Override
+            taxes = line.x_custom_tax_ids if line.x_tax_override else line.taxes_id
+            
             # Calculate the discounted unit price
             discount_factor = 1 - (line.discount or 0.0) / 100.0
             discounted_price = line.price_unit * discount_factor
             
-            # Compute taxes based on the discounted price
-            taxes = line.taxes_id.compute_all(
+            # Compute taxes based on the discounted price or override
+            res = taxes.compute_all(
                 discounted_price, 
                 line.order_id.currency_id, 
                 line.product_qty, 
@@ -145,7 +151,23 @@ class PurchaseOrderLine(models.Model):
             )
             
             line.update({
-                'price_tax': sum(t.get('amount', 0.0) for t in taxes.get('taxes', [])),
-                'price_total': taxes['total_included'],
-                'price_subtotal': taxes['total_excluded'],
+                'price_tax': sum(t.get('amount', 0.0) for t in res.get('taxes', [])),
+                'price_total': res['total_included'],
+                'price_subtotal': res['total_excluded'],
             })
+
+    @api.constrains('price_unit')
+    def _check_price_zero_fallback(self):
+        """Logic for Price = 0 Fallback Account Assignment."""
+        for line in self:
+            if line.price_unit == 0:
+                account_id = self.env['ir.config_parameter'].sudo().get_param('custom_purchase.expense_account_id')
+                if account_id:
+                    line.x_account_id = int(account_id)
+
+    def _prepare_account_move_line(self, move=False):
+        """Override to pass the custom account to the Bill if price is 0 or manual."""
+        res = super()._prepare_account_move_line(move=move)
+        if self.x_account_id:
+            res.update({'account_id': self.x_account_id.id})
+        return res
